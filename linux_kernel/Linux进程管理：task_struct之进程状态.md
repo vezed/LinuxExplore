@@ -24,7 +24,7 @@ int				exit_state;
 进程的运行状态设置于`__state`字段，进程可能的运行状态有：
 
 - **`TASK_RUNNING`（可运行状态）**：进程处于就绪状态。注意不要被这里的`RUNNING`误导，处于这一状态的进程未必在处理器上运行，也可能是在运行队列上等待被调度。
-- **`TASK_INTERRUPTIBLE`可中断的等待状态）**：进程的一种等待状态。进程阻塞地等待某个条件为真。
+- **`TASK_INTERRUPTIBLE`（可中断的等待状态）**：进程的一种等待状态。进程阻塞地等待某个条件为真。
 - **`TASK_UNINTERRUPTIBLE`（不可中断的等待状态）**：进程的另一种等待状态。与`TASK_INTERRUPTIBLE`类似，但特别是信号传递不能改变它的状态。值得注意的是，`kill`本质上也是`SIGKILL`信号，所以如果等待的条件无法满足，进程将一直处于等待状态无法被关闭。因此只有在有特殊需求且有把握的情况下才会采用这一状态。
 - **`TASK_STOPPED`（暂停状态）**：进程在收到`SIGSTOP`、`SIGTSTP`、`SIGTTIN`、`SIGTTOU`信号后进入暂停状态。
 - **`TASK_TRACED`（跟踪状态）**：用于调试和监控。
@@ -64,7 +64,7 @@ int				exit_state;
 #define TASK_NEW						0x00000800
 #define TASK_RTLOCK_WAIT				0x00001000
 #define TASK_FREEZABLE					0x00002000
-#define __TASK_FREEZABLE_UNSAFE	       	(0x00004000 * IS_ENABLED(CONFIG_LOCKDEP))
+#define __TASK_FREEZABLE_UNSAFE			(0x00004000 * IS_ENABLED(CONFIG_LOCKDEP))
 #define TASK_FROZEN						0x00008000
 #define TASK_STATE_MAX					0x00010000
 ```
@@ -85,11 +85,17 @@ int				exit_state;
 #define TASK_NORMAL					(TASK_INTERRUPTIBLE | TASK_UNINTERRUPTIBLE)
 ```
 
-可以看到，除`2.1.1 `和`2.1.2`所示的常见状态外，内核还包含了其他状态。例如，处于`TASK_WAKEKILL`状态的进程无法被常规信号唤醒，只能通过发送`SIGKILL`信号才能将其唤醒或终止。`TASK_KILLABLE`是`TASK_WAKEKILL`和`TASK_UNINTERRUPTIBLE`的组合。这就在保证进程不会被常规信号唤醒的同时，弥补了`2.1.1`中提到的`TASK_INTERRUPTIBLE`不能通过`SIGKILL`终止的问题。此外，`TASK_WAKING`表示进程正在从其他状态（如`TASK_KILLABLE`或`TASK_INTERRUPTIBLE`）被唤醒并准备进入`TASK_RUNNING`状态的过程。
+可以看到，除`2.1.1`和`2.1.2`所示的常见状态外，内核还包含了其他状态。
+
+例如，处于`TASK_WAKEKILL`状态的进程无法被常规信号唤醒，只能通过发送`SIGKILL`信号才能将其唤醒或终止。`TASK_KILLABLE`是`TASK_WAKEKILL`和`TASK_UNINTERRUPTIBLE`的组合。这就在保证进程不会被常规信号唤醒的同时，弥补了`2.1.1`中提到的`TASK_INTERRUPTIBLE`不能通过`SIGKILL`终止的问题。
+
+此外，`TASK_WAKING`表示进程正在从其他状态（如`TASK_KILLABLE`或`TASK_INTERRUPTIBLE`）被唤醒并准备进入`TASK_RUNNING`状态的过程，是不独立存在的中间状态。
+
+其余的状态将在后续文章中结合具体专题进行介绍。
 
 ## 四、进程状态的设置
 
-内核中使用`set_current_state`宏设置指定进程和当前进程的`__state`，其内部使用内存屏障强制其他处理器重新排序。如果不需要序列化，可以直接使用`__set_current_state`宏。定义如下：
+内核中使用`set_current_state`宏设置当前进程的`__state`，其内部使用内存屏障强制其他处理器重新排序。如果不需要序列化，可以直接使用`__set_current_state`宏。定义如下：
 
 ```C
 #define __set_current_state(state_value)				\
