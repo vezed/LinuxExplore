@@ -16,39 +16,20 @@
 
 ```c
 pid_t					pid;
+pid_t					tgid;
+struct task_struct		*group_lea1der;
+unsigned int			sessionid;
 ```
 
 
 
-## 二、`pid`的查看
+## 二、进程标识符的查看
 
 ### 2.1 在shell中查看
 
 
 
-### 2.2 通过`get_pid()`查看
-
-
-
-## 三、进程描述符处理
-
-`thread_info`（线程描述符）
-
-`thread_info`的定义与架构有关，一般在`arch/xxx/include/asm/thread_info.h`。其中`xxx`表示架构名称，常见的有`arm`、`arm64`、`x86`、`riscv`等。下面展示`arch/xxx/include/asm/thread_info.h`
-
-```
-
-```
-
-`asm/current.h`定义`current`
-
-
-
-`include/linux/thread_info.h`定义`current_thread_info()`
-
-
-
-## 四、标识当前进程
+### 2.2 通过命令查看
 
 
 
